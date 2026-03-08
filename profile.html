@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#6c5ce7">
+  <title>FitQuest — Profile &amp; Settings</title>
+  <link rel="stylesheet" href="css/style.css"><link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <main class="main-content">
+      <header class="page-header">
+        <button class="sidebar-toggle" id="sidebar-toggle">☰</button>
+        <h1>⚙️ Profile &amp; Settings</h1>
+        <div></div>
+      </header>
+      <div class="page-body" id="page-content"><div class="spinner"></div></div>
+    </main>
+  </div>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+  <script src="js/db.js"></script><script src="js/gamification.js"></script><script src="js/app.js"></script>
+  <script src="js/profile.js"></script>
+</body>
+</html>
