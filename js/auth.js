@@ -8,7 +8,7 @@
  * Steps: https://console.cloud.google.com → Credentials → OAuth 2.0 Client ID
  * Add your Vercel domain (and localhost for testing) as Authorized JavaScript Origins.
  */
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = '643312726366-07qnrklo63qjov84p8qjfq7vg0iiapau.apps.googleusercontent.com';
 
 // Init DB on page load
 (async () => {
