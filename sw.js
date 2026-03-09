@@ -33,6 +33,8 @@ const STATIC_ASSETS = [
   '/js/badges.js',
   '/js/profile.js',
   '/js/exercises.js',
+  '/sql-console.html',
+  '/js/sql-console.js',
   '/manifest.json'
 ];
 

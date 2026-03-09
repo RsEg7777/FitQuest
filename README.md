@@ -19,6 +19,8 @@ A Progressive Web App (PWA) that gamifies fitness tracking with XP, levels, stre
 - **Exercise Library** — Searchable/filterable database of exercises with muscle groups & MET values
 - **Profile & Settings** — Edit profile, toggle notifications, export data as JSON, danger-zone data reset
 - **PWA** — Installable on mobile/desktop, offline-capable dashboard, 9 PM streak reminder push notification
+- **Google Login** — Sign in with Google OAuth (one-tap login), auto-creates account from Google profile
+- **SQL Console** — In-app interactive SQL terminal to run queries against the database in real-time, with 14+ preset queries, query history, and result tables — perfect for demonstrating DB operations
 
 ---
 
@@ -53,6 +55,7 @@ fitquest/
 ├── badges.html             # Badges & achievements
 ├── profile.html            # Profile & settings
 ├── exercises.html          # Exercise library
+├── sql-console.html        # Interactive SQL console
 ├── manifest.json           # PWA manifest
 ├── sw.js                   # Service worker
 ├── css/
@@ -71,7 +74,8 @@ fitquest/
 │   ├── leaderboard.js      # Leaderboard table
 │   ├── badges.js           # Badge grid & unlock animations
 │   ├── profile.js          # Settings, export, data reset
-│   └── exercises.js        # Exercise search & filter
+│   ├── exercises.js        # Exercise search & filter
+│   └── sql-console.js      # SQL console query execution
 ├── SQL_DEMO.md             # SQL operations demonstration
 └── README.md               # This file
 ```

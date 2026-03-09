@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#6c5ce7">
+  <title>FitQuest — SQL Console</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <main class="main-content">
+      <header class="page-header">
+        <button class="sidebar-toggle" id="sidebar-toggle">☰</button>
+        <h1>🖥️ SQL Console</h1>
+        <span class="level-badge" id="level-badge">⭐ Lvl 1</span>
+      </header>
+      <div class="page-body" id="page-content">
+
+        <!-- Quick Info -->
+        <div class="sql-console-info card mb-2">
+          <p style="color:var(--text-muted);font-size:0.9rem;">
+            Run SQL queries directly against the FitQuest SQLite database. Use this to monitor and demonstrate all database operations in real-time.
+          </p>
+        </div>
+
+        <!-- Preset Queries -->
+        <div class="card mb-2">
+          <div class="card-header">
+            <span class="card-title">📋 Quick Queries</span>
+          </div>
+          <div class="preset-queries" id="preset-queries"></div>
+        </div>
+
+        <!-- Query Editor -->
+        <div class="card mb-2">
+          <div class="card-header">
+            <span class="card-title">✏️ SQL Editor</span>
+            <div style="display:flex;gap:0.5rem;">
+              <button class="btn btn-secondary btn-sm" onclick="clearEditor()">Clear</button>
+              <button class="btn btn-primary btn-sm" onclick="executeQuery()" id="run-btn">▶ Run Query</button>
+            </div>
+          </div>
+          <textarea id="sql-editor" class="sql-editor" rows="5" spellcheck="false"
+            placeholder="Enter your SQL query here...&#10;Example: SELECT * FROM users;">
+          </textarea>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">
+            Tip: Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to run · Supports SELECT, INSERT, UPDATE, DELETE and all SQLite syntax
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div class="card" id="results-card" style="display:none;">
+          <div class="card-header">
+            <span class="card-title" id="results-title">Results</span>
+            <span id="results-meta" style="font-size:0.8rem;color:var(--text-muted);"></span>
+          </div>
+          <div id="results-container" class="sql-results-container"></div>
+        </div>
+
+        <!-- Query History -->
+        <div class="card mt-2" id="history-card" style="display:none;">
+          <div class="card-header">
+            <span class="card-title">📜 Query History</span>
+            <button class="btn btn-secondary btn-sm" onclick="clearHistory()">Clear History</button>
+          </div>
+          <div id="history-list" class="sql-history-list"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/gamification.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/sql-console.js"></script>
+</body>
+</html>

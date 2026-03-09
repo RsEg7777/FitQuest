@@ -29,6 +29,7 @@ function renderSidebar(activePage) {
     { href: 'leaderboard.html', icon: '🏆', label: 'Leaderboard', id: 'leaderboard' },
     { href: 'badges.html', icon: '🏅', label: 'Badges', id: 'badges' },
     { href: 'exercises.html', icon: '💪', label: 'Exercise Library', id: 'exercises' },
+    { href: 'sql-console.html', icon: '🖥️', label: 'SQL Console', id: 'sql-console' },
     { href: 'profile.html', icon: '⚙️', label: 'Profile & Settings', id: 'profile' },
   ];
 
