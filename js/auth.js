@@ -7,7 +7,7 @@
   await initDB();
   // If already logged in, redirect
   if (getCurrentUserId()) {
-    const profile = dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [getCurrentUserId()]);
+    const profile = await dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [getCurrentUserId()]);
     window.location.href = profile ? 'dashboard.html' : 'onboarding.html';
   }
 })();
@@ -34,7 +34,7 @@ async function handleLogin(e) {
   const errorEl = document.getElementById('login-error');
 
   const hash = await hashPassword(password);
-  const user = dbGet('SELECT * FROM users WHERE username = ? AND password_hash = ?', [username, hash]);
+  const user = await dbGet('SELECT * FROM users WHERE username = ? AND password_hash = ?', [username, hash]);
 
   if (!user) {
     errorEl.textContent = 'Invalid username or password.';
@@ -45,7 +45,7 @@ async function handleLogin(e) {
   localStorage.setItem('fitquest_user_id', user.id);
 
   // Check if onboarding is done
-  const profile = dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [user.id]);
+  const profile = await dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [user.id]);
   window.location.href = profile ? 'dashboard.html' : 'onboarding.html';
 }
 
@@ -65,7 +65,7 @@ async function handleRegister(e) {
   }
 
   // Check if username exists
-  const existing = dbGet('SELECT id FROM users WHERE username = ? OR email = ?', [username, email]);
+  const existing = await dbGet('SELECT id FROM users WHERE username = ? OR email = ?', [username, email]);
   if (existing) {
     errorEl.textContent = 'Username or email already taken.';
     errorEl.style.display = 'block';
@@ -75,12 +75,12 @@ async function handleRegister(e) {
   const hash = await hashPassword(password);
 
   try {
-    dbRun('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)', [username, email, hash]);
-    const user = dbGet('SELECT id FROM users WHERE username = ?', [username]);
+    await dbRun('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)', [username, email, hash]);
+    const user = await dbGet('SELECT id FROM users WHERE username = ?', [username]);
 
     if (user) {
       // Initialise user stats
-      dbRun('INSERT INTO user_stats (user_id, total_xp, level, current_streak, longest_streak, last_active_date) VALUES (?, 0, 1, 1, 1, ?)',
+      await dbRun('INSERT INTO user_stats (user_id, total_xp, level, current_streak, longest_streak, last_active_date) VALUES (?, 0, 1, 1, 1, ?)',
         [user.id, getToday()]);
 
       localStorage.setItem('fitquest_user_id', user.id);

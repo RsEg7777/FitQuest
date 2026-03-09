@@ -4,22 +4,22 @@ let selectedMealType = 'breakfast';
 (async () => {
   const ready = await initApp('calories');
   if (!ready) return;
-  renderCalorieTracker();
+  await renderCalorieTracker();
 })();
 
-function renderCalorieTracker() {
+async function renderCalorieTracker() {
   const userId = getCurrentUserId();
-  const profile = dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [userId]);
+  const profile = await dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [userId]);
   const today = getToday();
   const target = profile ? profile.target_calories : 2000;
 
-  const todayFood = dbAll('SELECT * FROM food_log WHERE user_id = ? AND date = ? ORDER BY logged_at DESC', [userId, today]);
-  const todayWorkouts = dbAll('SELECT * FROM workout_log WHERE user_id = ? AND date = ? ORDER BY logged_at DESC', [userId, today]);
-  const totalCal = todayFood.reduce((s, f) => s + f.calories, 0);
+  const todayFood     = await dbAll('SELECT * FROM food_log WHERE user_id = ? AND date = ? ORDER BY logged_at DESC', [userId, today]);
+  const todayWorkouts = await dbAll('SELECT * FROM workout_log WHERE user_id = ? AND date = ? ORDER BY logged_at DESC', [userId, today]);
+  const totalCal     = todayFood.reduce((s, f) => s + f.calories, 0);
   const totalProtein = todayFood.reduce((s, f) => s + f.protein_g, 0);
-  const totalCarbs = todayFood.reduce((s, f) => s + f.carbs_g, 0);
-  const totalFat = todayFood.reduce((s, f) => s + f.fat_g, 0);
-  const totalBurned = todayWorkouts.reduce((s, w) => s + w.calories_burned, 0);
+  const totalCarbs   = todayFood.reduce((s, f) => s + f.carbs_g, 0);
+  const totalFat     = todayFood.reduce((s, f) => s + f.fat_g, 0);
+  const totalBurned  = todayWorkouts.reduce((s, w) => s + w.calories_burned, 0);
 
   document.getElementById('page-content').innerHTML = `
     <!-- Summary Cards -->
@@ -143,11 +143,11 @@ function renderCalorieTracker() {
   `;
 }
 
-function searchFood(query) {
+async function searchFood(query) {
   const results = document.getElementById('food-results');
   if (query.length < 2) { results.classList.remove('show'); return; }
 
-  const foods = dbAll('SELECT * FROM indian_foods WHERE name LIKE ? LIMIT 15', ['%' + query + '%']);
+  const foods = await dbAll('SELECT * FROM indian_foods WHERE name LIKE ? LIMIT 15', ['%' + query + '%']);
   if (foods.length === 0) { results.innerHTML = '<div style="padding:1rem;color:var(--text-muted)">No results found.</div>'; results.classList.add('show'); return; }
 
   results.innerHTML = foods.map(f => `
@@ -162,54 +162,52 @@ function searchFood(query) {
   results.classList.add('show');
 }
 
-function logFood(foodId) {
+async function logFood(foodId) {
   const userId = getCurrentUserId();
-  const food = dbGet('SELECT * FROM indian_foods WHERE id = ?', [foodId]);
+  const food = await dbGet('SELECT * FROM indian_foods WHERE id = ?', [foodId]);
   if (!food) return;
 
-  dbRun('INSERT INTO food_log (user_id, date, meal_type, food_name, food_id, servings, calories, protein_g, carbs_g, fat_g) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)',
+  await dbRun('INSERT INTO food_log (user_id, date, meal_type, food_name, food_id, servings, calories, protein_g, carbs_g, fat_g) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)',
     [userId, getToday(), selectedMealType, food.name, food.id, food.calories, food.protein_g, food.carbs_g, food.fat_g]);
 
-  awardXP(userId, XP_REWARDS.meal_logged, 'meal_logged', foodId);
+  await awardXP(userId, XP_REWARDS.meal_logged, 'meal_logged', foodId);
   document.getElementById('food-search').value = '';
   document.getElementById('food-results').classList.remove('show');
-  renderCalorieTracker();
+  await renderCalorieTracker();
 }
 
-function deleteFood(id) {
-  dbRun('DELETE FROM food_log WHERE id = ?', [id]);
-  renderCalorieTracker();
+async function deleteFood(id) {
+  await dbRun('DELETE FROM food_log WHERE id = ?', [id]);
+  await renderCalorieTracker();
 }
 
-function updateBurnCalc() {
+async function updateBurnCalc() {
   const sel = document.getElementById('workout-exercise');
   const met = parseFloat(sel.options[sel.selectedIndex].dataset.met);
   const dur = parseInt(document.getElementById('workout-duration').value) || 0;
-  const profile = dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [getCurrentUserId()]);
+  const profile = await dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [getCurrentUserId()]);
   const burn = profile ? calculateCaloriesBurned(met, profile.weight_kg, dur) : 0;
   const calc = document.getElementById('burn-calc');
-  if (calc) {
-    calc.querySelector('.burn-value').textContent = burn;
-  }
+  if (calc) calc.querySelector('.burn-value').textContent = burn;
 }
 
-function logWorkout() {
+async function logWorkout() {
   const userId = getCurrentUserId();
   const sel = document.getElementById('workout-exercise');
   const name = sel.value;
   const met = parseFloat(sel.options[sel.selectedIndex].dataset.met);
   const dur = parseInt(document.getElementById('workout-duration').value) || 0;
-  const profile = dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [userId]);
+  const profile = await dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [userId]);
   const burn = profile ? calculateCaloriesBurned(met, profile.weight_kg, dur) : 0;
 
-  dbRun('INSERT INTO workout_log (user_id, date, exercise_name, duration_min, calories_burned, met_value) VALUES (?, ?, ?, ?, ?, ?)',
+  await dbRun('INSERT INTO workout_log (user_id, date, exercise_name, duration_min, calories_burned, met_value) VALUES (?, ?, ?, ?, ?, ?)',
     [userId, getToday(), name, dur, burn, met]);
 
-  awardXP(userId, XP_REWARDS.workout_complete, 'workout_complete');
-  renderCalorieTracker();
+  await awardXP(userId, XP_REWARDS.workout_complete, 'workout_complete');
+  await renderCalorieTracker();
 }
 
-function deleteWorkout(id) {
-  dbRun('DELETE FROM workout_log WHERE id = ?', [id]);
-  renderCalorieTracker();
+async function deleteWorkout(id) {
+  await dbRun('DELETE FROM workout_log WHERE id = ?', [id]);
+  await renderCalorieTracker();
 }

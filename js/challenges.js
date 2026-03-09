@@ -4,15 +4,22 @@ let activeFilter = 'all';
 (async () => {
   const ready = await initApp('challenges');
   if (!ready) return;
-  renderChallenges();
+  await renderChallenges();
 })();
 
-function renderChallenges() {
+async function renderChallenges() {
   const userId = getCurrentUserId();
   const today = getToday();
-  const challenges = dbAll('SELECT * FROM daily_challenges WHERE date = ?', [today]);
+  const challenges = await dbAll('SELECT * FROM daily_challenges WHERE date = ?', [today]);
 
   const filtered = activeFilter === 'all' ? challenges : challenges.filter(c => c.difficulty === activeFilter);
+
+  // Pre-fetch completion status for each challenge
+  const doneMap = {};
+  for (const ch of filtered) {
+    const done = await dbGet('SELECT * FROM user_challenges WHERE user_id = ? AND challenge_id = ? AND completed = 1', [userId, ch.id]);
+    doneMap[ch.id] = done;
+  }
 
   document.getElementById('page-content').innerHTML = `
     <div class="challenges-tabs">
@@ -24,7 +31,7 @@ function renderChallenges() {
     <div class="challenges-list">
       ${filtered.length === 0 ? '<div class="empty-state"><div class="empty-icon">🎯</div><h3>No challenges today</h3><p>Check back tomorrow!</p></div>' :
         filtered.map(ch => {
-          const done = dbGet('SELECT * FROM user_challenges WHERE user_id = ? AND challenge_id = ? AND completed = 1', [userId, ch.id]);
+          const done = doneMap[ch.id];
           return `
             <div class="challenge-card ${done ? 'completed' : ''}">
               <div class="ch-icon ${ch.difficulty}">${done ? '✅' : ch.difficulty === 'easy' ? '🟢' : ch.difficulty === 'medium' ? '🟡' : '🔴'}</div>
@@ -47,15 +54,15 @@ function renderChallenges() {
   `;
 }
 
-function setFilter(f) {
+async function setFilter(f) {
   activeFilter = f;
-  renderChallenges();
+  await renderChallenges();
 }
 
-function completeChallenge(challengeId, xpReward, difficulty) {
+async function completeChallenge(challengeId, xpReward, difficulty) {
   const userId = getCurrentUserId();
-  dbRun('INSERT INTO user_challenges (user_id, challenge_id, completed, completed_at) VALUES (?, ?, 1, datetime("now"))',
+  await dbRun('INSERT INTO user_challenges (user_id, challenge_id, completed, completed_at) VALUES (?, ?, 1, NOW())',
     [userId, challengeId]);
-  awardXP(userId, xpReward, 'challenge_' + difficulty, challengeId);
-  renderChallenges();
+  await awardXP(userId, xpReward, 'challenge_' + difficulty, challengeId);
+  await renderChallenges();
 }

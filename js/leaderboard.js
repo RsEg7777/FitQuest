@@ -2,13 +2,13 @@
 (async () => {
   const ready = await initApp('leaderboard');
   if (!ready) return;
-  ensureDemoLeaderboard();
-  renderLeaderboard();
+  await ensureDemoLeaderboard();
+  await renderLeaderboard();
 })();
 
-function renderLeaderboard() {
+async function renderLeaderboard() {
   const userId = getCurrentUserId();
-  const users = getLeaderboard();
+  const users = await getLeaderboard();
   const top3 = users.slice(0, 3);
   const rest = users.slice(3);
 

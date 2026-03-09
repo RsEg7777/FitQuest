@@ -9,7 +9,7 @@ let onboardingData = { bodyType: '', goal: '' };
   await initDB();
   if (!getCurrentUserId()) { window.location.href = 'auth.html'; return; }
   // If already onboarded, go to dashboard
-  const profile = dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [getCurrentUserId()]);
+  const profile = await dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [getCurrentUserId()]);
   if (profile) { window.location.href = 'dashboard.html'; }
 })();
 
@@ -120,39 +120,36 @@ function computeResults() {
 }
 
 /* ---------- Save Profile & Generate Plan ---------- */
-function finishOnboarding() {
+async function finishOnboarding() {
   const d = onboardingData;
   const userId = getCurrentUserId();
 
   // INSERT profile
-  dbRun(`INSERT INTO user_profiles (user_id, height_cm, weight_kg, age, sex, body_type, activity_level, goal, bmi, bmr, tdee, target_calories)
+  await dbRun(`INSERT INTO user_profiles (user_id, height_cm, weight_kg, age, sex, body_type, activity_level, goal, bmi, bmr, tdee, target_calories)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [userId, d.height, d.weight, d.age, d.sex, d.bodyType, d.activity, d.goal, d.bmi, d.bmr, d.tdee, d.target]);
 
   // Log initial weight
-  dbRun('INSERT INTO weight_log (user_id, date, weight_kg) VALUES (?, ?, ?)',
+  await dbRun('INSERT INTO weight_log (user_id, date, weight_kg) VALUES (?, ?, ?)',
     [userId, getToday(), d.weight]);
 
   // Generate workout plan
-  generateWorkoutPlan(userId, d);
+  await generateWorkoutPlan(userId, d);
 
   // Generate meal plan
-  generateMealPlan(userId, d);
+  await generateMealPlan(userId, d);
 
   // Award daily login XP
-  awardXP(userId, XP_REWARDS.daily_login, 'daily_login');
+  await awardXP(userId, XP_REWARDS.daily_login, 'daily_login');
 
   // Ensure demo leaderboard users
-  ensureDemoLeaderboard();
+  await ensureDemoLeaderboard();
 
   window.location.href = 'dashboard.html';
 }
 
 /* ---------- Workout Plan Generator ---------- */
-function generateWorkoutPlan(userId, d) {
-  const exercises = getExerciseLibrary();
-
-  // Plan varies by goal and body type
+async function generateWorkoutPlan(userId, d) {
   const plans = {
     cut: {
       ectomorph: [
@@ -189,28 +186,20 @@ function generateWorkoutPlan(userId, d) {
     },
   };
 
-  // Use the same plan structure for all body types (simplified)
   const goalPlan = plans[d.goal] || plans.maintain;
-  const workouts = goalPlan.ectomorph; // Same base for all body types
+  const workouts = goalPlan.ectomorph;
 
-  workouts.forEach((dayExercises, dayIdx) => {
-    dayExercises.forEach(ex => {
-      dbRun(`INSERT INTO workout_plans (user_id, day_number, exercise_name, sets, reps, duration_min, met_value, muscle_group)
+  for (let dayIdx = 0; dayIdx < workouts.length; dayIdx++) {
+    for (const ex of workouts[dayIdx]) {
+      await dbRun(`INSERT INTO workout_plans (user_id, day_number, exercise_name, sets, reps, duration_min, met_value, muscle_group)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [userId, dayIdx + 1, ex.name, ex.sets, ex.reps, ex.dur, ex.met, ex.grp]);
-    });
-  });
+    }
+  }
 }
 
 /* ---------- Meal Plan Generator ---------- */
-function generateMealPlan(userId, d) {
-  const target = d.target;
-  // Split: Breakfast 25%, Lunch 35%, Snack 10%, Dinner 30%
-  const breakfastCal = target * 0.25;
-  const lunchCal = target * 0.35;
-  const snackCal = target * 0.10;
-  const dinnerCal = target * 0.30;
-
+async function generateMealPlan(userId, d) {
   const mealTemplates = [
     // Day 1
     { breakfast: ['Oats Porridge', 'Banana (1 medium)'], lunch: ['Plain Rice (cooked)', 'Dal Tadka (Toor)', 'Green Salad'], snack: ['Chai (with milk & sugar)', 'Almonds'], dinner: ['Roti (Chapati)', 'Palak Paneer', 'Raita (Cucumber)'] },
@@ -228,16 +217,17 @@ function generateMealPlan(userId, d) {
     { breakfast: ['Oats Porridge', 'Mango (1 cup)'], lunch: ['Plain Rice (cooked)', 'Chana Dal', 'Cabbage Sabzi'], snack: ['Protein Shake (whey)'], dinner: ['Roti (Chapati)', 'Baingan Bharta', 'Green Salad'] },
   ];
 
-  mealTemplates.forEach((day, dayIdx) => {
-    Object.entries(day).forEach(([mealType, foods]) => {
-      foods.forEach(foodName => {
-        const food = dbGet('SELECT * FROM indian_foods WHERE name = ?', [foodName]);
+  for (let dayIdx = 0; dayIdx < mealTemplates.length; dayIdx++) {
+    const day = mealTemplates[dayIdx];
+    for (const [mealType, foods] of Object.entries(day)) {
+      for (const foodName of foods) {
+        const food = await dbGet('SELECT * FROM indian_foods WHERE name = ?', [foodName]);
         if (food) {
-          dbRun(`INSERT INTO meal_plans (user_id, day_number, meal_type, food_name, calories, protein_g, carbs_g, fat_g)
+          await dbRun(`INSERT INTO meal_plans (user_id, day_number, meal_type, food_name, calories, protein_g, carbs_g, fat_g)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [userId, dayIdx + 1, mealType, food.name, food.calories, food.protein_g, food.carbs_g, food.fat_g]);
         }
-      });
-    });
-  });
+      }
+    }
+  }
 }

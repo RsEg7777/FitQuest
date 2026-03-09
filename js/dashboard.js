@@ -5,24 +5,29 @@
 (async () => {
   const ready = await initApp('dashboard');
   if (!ready) return;
-  renderDashboard();
+  await renderDashboard();
 })();
 
-function renderDashboard() {
+async function renderDashboard() {
   const userId = getCurrentUserId();
-  const user = getCurrentUser();
-  const profile = dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [userId]);
-  const stats = dbGet('SELECT * FROM user_stats WHERE user_id = ?', [userId]);
+  const user = await getCurrentUser();
+  const profile = await dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [userId]);
+  const stats = await dbGet('SELECT * FROM user_stats WHERE user_id = ?', [userId]);
   const today = getToday();
 
   // XP Progress
   const xp = xpProgress(stats ? stats.total_xp : 0);
   document.getElementById('level-badge').textContent = `⭐ Lvl ${xp.level}`;
 
-  // Today's calories
-  const todayFood = dbGet('SELECT COALESCE(SUM(calories),0) as cal FROM food_log WHERE user_id = ? AND date = ?', [userId, today]);
-  const todayWorkout = dbGet('SELECT COALESCE(SUM(calories_burned),0) as cal, COUNT(*) as cnt FROM workout_log WHERE user_id = ? AND date = ?', [userId, today]);
-  const todayChallenges = dbGet('SELECT COUNT(*) as cnt FROM user_challenges uc JOIN daily_challenges dc ON uc.challenge_id = dc.id WHERE uc.user_id = ? AND dc.date = ? AND uc.completed = 1', [userId, today]);
+  // Today's stats (pre-fetched)
+  const todayFood = await dbGet('SELECT COALESCE(SUM(calories),0) as cal FROM food_log WHERE user_id = ? AND date = ?', [userId, today]);
+  const todayWorkout = await dbGet('SELECT COALESCE(SUM(calories_burned),0) as cal, COUNT(*) as cnt FROM workout_log WHERE user_id = ? AND date = ?', [userId, today]);
+  const todayChallenges = await dbGet('SELECT COUNT(*) as cnt FROM user_challenges uc JOIN daily_challenges dc ON uc.challenge_id = dc.id WHERE uc.user_id = ? AND dc.date = ? AND uc.completed = 1', [userId, today]);
+
+  const foodCal    = todayFood    ? todayFood.cal    : 0;
+  const workoutCal = todayWorkout ? todayWorkout.cal : 0;
+  const workoutCnt = todayWorkout ? todayWorkout.cnt : 0;
+  const chCnt      = todayChallenges ? todayChallenges.cnt : 0;
 
   const content = document.getElementById('dashboard-content');
   content.innerHTML = `
@@ -45,14 +50,14 @@ function renderDashboard() {
       <div class="stat-card">
         <div class="stat-icon pink">🍽️</div>
         <div class="stat-info">
-          <div class="stat-value">${Math.round(todayFood.cal)}</div>
+          <div class="stat-value">${Math.round(foodCal)}</div>
           <div class="stat-label">Calories Today</div>
         </div>
       </div>
       <div class="stat-card">
         <div class="stat-icon green">💪</div>
         <div class="stat-info">
-          <div class="stat-value">${todayWorkout.cnt}</div>
+          <div class="stat-value">${workoutCnt}</div>
           <div class="stat-label">Workouts Today</div>
         </div>
       </div>
@@ -75,14 +80,14 @@ function renderDashboard() {
         <div class="card mb-2">
           <div class="card-header">
             <span class="card-title">Calorie Target</span>
-            <span style="color:var(--secondary);font-weight:700;">${Math.round(todayFood.cal)} / ${profile ? Math.round(profile.target_calories) : '---'} kcal</span>
+            <span style="color:var(--secondary);font-weight:700;">${Math.round(foodCal)} / ${profile ? Math.round(profile.target_calories) : '---'} kcal</span>
           </div>
           <div class="xp-bar-container">
-            <div class="xp-bar" style="width: ${profile ? Math.min(100, (todayFood.cal / profile.target_calories) * 100) : 0}%; background: linear-gradient(90deg, var(--success), var(--secondary));"></div>
+            <div class="xp-bar" style="width: ${profile ? Math.min(100, (foodCal / profile.target_calories) * 100) : 0}%; background: linear-gradient(90deg, var(--success), var(--secondary));"></div>
           </div>
           <div style="display:flex;justify-content:space-between;margin-top:0.5rem;font-size:0.8rem;color:var(--text-muted);">
-            <span>Burned: ${Math.round(todayWorkout.cal)} kcal</span>
-            <span>Net: ${Math.round(todayFood.cal - todayWorkout.cal)} kcal</span>
+            <span>Burned: ${Math.round(workoutCal)} kcal</span>
+            <span>Net: ${Math.round(foodCal - workoutCal)} kcal</span>
           </div>
         </div>
 
@@ -90,7 +95,7 @@ function renderDashboard() {
         <div class="card">
           <div class="card-header">
             <span class="card-title">Today's Challenges</span>
-            <span style="color:var(--text-muted);font-size:0.85rem;">${todayChallenges.cnt} completed</span>
+            <span style="color:var(--text-muted);font-size:0.85rem;">${chCnt} completed</span>
           </div>
           <div id="today-challenges"></div>
         </div>
@@ -123,14 +128,15 @@ function renderDashboard() {
   `;
 
   // Render today's challenges preview
-  const challenges = dbAll('SELECT * FROM daily_challenges WHERE date = ? LIMIT 3', [today]);
+  const challenges = await dbAll('SELECT * FROM daily_challenges WHERE date = ? LIMIT 3', [today]);
   const challengeEl = document.getElementById('today-challenges');
   if (challenges.length === 0) {
     challengeEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.9rem;">No challenges for today yet.</p>';
   } else {
-    challengeEl.innerHTML = challenges.map(ch => {
-      const done = dbGet('SELECT * FROM user_challenges WHERE user_id = ? AND challenge_id = ? AND completed = 1', [userId, ch.id]);
-      return `
+    const rows = [];
+    for (const ch of challenges) {
+      const done = await dbGet('SELECT * FROM user_challenges WHERE user_id = ? AND challenge_id = ? AND completed = 1', [userId, ch.id]);
+      rows.push(`
         <div class="challenge-card ${done ? 'completed' : ''}" style="margin-bottom:0.5rem;">
           <div class="ch-icon ${ch.difficulty}">${done ? '✅' : '🎯'}</div>
           <div class="ch-info">
@@ -139,7 +145,8 @@ function renderDashboard() {
             <span class="ch-xp">+${ch.xp_reward} XP</span>
           </div>
         </div>
-      `;
-    }).join('');
+      `);
+    }
+    challengeEl.innerHTML = rows.join('');
   }
 }

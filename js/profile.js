@@ -2,15 +2,15 @@
 (async () => {
   const ready = await initApp('profile');
   if (!ready) return;
-  renderProfile();
+  await renderProfile();
 })();
 
-function renderProfile() {
+async function renderProfile() {
   const userId = getCurrentUserId();
-  const user = getCurrentUser();
-  const profile = dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [userId]);
-  const stats = dbGet('SELECT * FROM user_stats WHERE user_id = ?', [userId]);
-  const badgeCount = dbGet('SELECT COUNT(*) as c FROM user_badges WHERE user_id = ?', [userId]);
+  const user   = await getCurrentUser();
+  const profile = await dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [userId]);
+  const stats  = await dbGet('SELECT * FROM user_stats WHERE user_id = ?', [userId]);
+  const badgeCount = await dbGet('SELECT COUNT(*) as c FROM user_badges WHERE user_id = ?', [userId]);
 
   document.getElementById('page-content').innerHTML = `
     <div class="profile-header">
@@ -122,40 +122,41 @@ function renderProfile() {
   `;
 }
 
-function updateProfile() {
-  const userId = getCurrentUserId();
-  const height = parseFloat(document.getElementById('pf-height').value);
-  const weight = parseFloat(document.getElementById('pf-weight').value);
-  const age = parseInt(document.getElementById('pf-age').value);
-  const goal = document.getElementById('pf-goal').value;
+async function updateProfile() {
+  const userId   = getCurrentUserId();
+  const height   = parseFloat(document.getElementById('pf-height').value);
+  const weight   = parseFloat(document.getElementById('pf-weight').value);
+  const age      = parseInt(document.getElementById('pf-age').value);
+  const goal     = document.getElementById('pf-goal').value;
   const activity = document.getElementById('pf-activity').value;
   const bodyType = document.getElementById('pf-bodytype').value;
-  const profile = dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [userId]);
+  const profile  = await dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [userId]);
 
-  const bmi = calculateBMI(weight, height);
-  const bmr = calculateBMR(weight, height, age, profile.sex);
-  const tdee = calculateTDEE(bmr, activity);
+  const bmi    = calculateBMI(weight, height);
+  const bmr    = calculateBMR(weight, height, age, profile.sex);
+  const tdee   = calculateTDEE(bmr, activity);
   const target = calculateTargetCalories(tdee, goal);
 
-  dbRun(`UPDATE user_profiles SET height_cm=?, weight_kg=?, age=?, body_type=?, activity_level=?, goal=?,
-    bmi=?, bmr=?, tdee=?, target_calories=?, updated_at=datetime('now') WHERE user_id=?`,
+  await dbRun(`UPDATE user_profiles SET height_cm=?, weight_kg=?, age=?, body_type=?, activity_level=?, goal=?,
+    bmi=?, bmr=?, tdee=?, target_calories=?, updated_at=NOW() WHERE user_id=?`,
     [height, weight, age, bodyType, activity, goal, bmi, bmr, tdee, target, userId]);
 
   showToast('Profile Updated', `TDEE: ${tdee} kcal · Target: ${target} kcal`, '✅');
-  renderProfile();
+  await renderProfile();
 }
 
 function toggleNotifications(enabled) {
   if (enabled) { requestNotificationPermission(); }
 }
 
-function resetData() {
+async function resetData() {
   if (!confirm('Are you sure? This will delete ALL your data permanently!')) return;
   const userId = getCurrentUserId();
-  ['food_log','workout_log','user_challenges','user_badges','xp_log','weight_log','workout_plans','meal_plans','user_profiles','user_stats'].forEach(table => {
-    dbRun(`DELETE FROM ${table} WHERE user_id = ?`, [userId]);
-  });
-  dbRun('DELETE FROM users WHERE id = ?', [userId]);
+  const tables = ['food_log','workout_log','user_challenges','user_badges','xp_log','weight_log','workout_plans','meal_plans','user_profiles','user_stats'];
+  for (const table of tables) {
+    await dbRun(`DELETE FROM ${table} WHERE user_id = ?`, [userId]);
+  }
+  await dbRun('DELETE FROM users WHERE id = ?', [userId]);
   localStorage.removeItem('fitquest_user_id');
   window.location.href = 'index.html';
 }

@@ -4,14 +4,14 @@ let selectedDay = 1;
 (async () => {
   const ready = await initApp('plan');
   if (!ready) return;
-  renderPlan();
+  await renderPlan();
 })();
 
-function renderPlan() {
+async function renderPlan() {
   const userId = getCurrentUserId();
-  const profile = dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [userId]);
-  const workouts = dbAll('SELECT * FROM workout_plans WHERE user_id = ? AND day_number = ? ORDER BY id', [userId, selectedDay]);
-  const meals = dbAll('SELECT * FROM meal_plans WHERE user_id = ? AND day_number = ? ORDER BY CASE meal_type WHEN "breakfast" THEN 1 WHEN "lunch" THEN 2 WHEN "snack" THEN 3 WHEN "dinner" THEN 4 END', [userId, selectedDay]);
+  const profile  = await dbGet('SELECT * FROM user_profiles WHERE user_id = ?', [userId]);
+  const workouts = await dbAll('SELECT * FROM workout_plans WHERE user_id = ? AND day_number = ? ORDER BY id', [userId, selectedDay]);
+  const meals    = await dbAll('SELECT * FROM meal_plans WHERE user_id = ? AND day_number = ? ORDER BY CASE meal_type WHEN "breakfast" THEN 1 WHEN "lunch" THEN 2 WHEN "snack" THEN 3 WHEN "dinner" THEN 4 END', [userId, selectedDay]);
 
   const totalMealCal = meals.reduce((s, m) => s + m.calories, 0);
 
@@ -69,7 +69,7 @@ function renderPlan() {
   `;
 }
 
-function selectDay(d) {
+async function selectDay(d) {
   selectedDay = d;
-  renderPlan();
+  await renderPlan();
 }

@@ -2,13 +2,13 @@
 (async () => {
   const ready = await initApp('badges');
   if (!ready) return;
-  renderBadges();
+  await renderBadges();
 })();
 
-function renderBadges() {
+async function renderBadges() {
   const userId = getCurrentUserId();
-  const allBadges = dbAll('SELECT * FROM badges ORDER BY id');
-  const earned = dbAll('SELECT badge_id, earned_at FROM user_badges WHERE user_id = ?', [userId]);
+  const allBadges = await dbAll('SELECT * FROM badges ORDER BY id');
+  const earned = await dbAll('SELECT badge_id, earned_at FROM user_badges WHERE user_id = ?', [userId]);
   const earnedMap = {};
   earned.forEach(e => { earnedMap[e.badge_id] = e.earned_at; });
 
