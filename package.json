@@ -8,6 +8,6 @@
     "setup-db": "mysql -u root -p < schema.sql"
   },
   "dependencies": {
-    "mysql2": "^3.9.0"
+    "better-sqlite3": "^12.8.0"
   }
 }
